@@ -1,0 +1,29 @@
+variables:
+  Company: dpdhl
+  Region: 'West Europe'
+  RegionShortcut: 'we'
+  Project: test
+  RgVNetName: default
+  TenantId: ''
+  AadGroupObjID: ''
+  PrivateDnsSubscriptionId: ''
+  #Services name and shortcut 
+  SharedServiceName: shared
+  SharedServiceShortcut: sh
+  #Terraform vars
+  TFVersion: '1.2.8'
+  RgTfName: 'rg-$(Company)-$(Project)-$(RegionShortcut)-tf'
+  RgName: 'rg-$(Company)-$(Project)-$(RegionShortcut)-$(EnvironmentTag)-$(Service)'
+  BaseNameNoSpace: "$(Project)$(RegionShortcut)$(EnvironmentTag)$(Service)"
+  BaseName: '$(Project)-$(RegionShortcut)-$(EnvironmentTag)-$(Service)'
+  AksName: 'k8stest' 
+  NamespaceTag: dev
+  SubscriptionId: ''
+  ServiceConnectionId: ''
+  ServicePrincipalObjectId: ''
+  ServicePrincipalClientId: ''
+  ServicePrincipalClientSecret: ''
+  AksNameDNS: "k8stest" 
+  RgLocation: 'West Europe'
+  KubernetesVersion: 1.24.6
+  

@@ -1,0 +1,100 @@
+steps:
+  - task: AzureCLI@2
+    displayName: "Check for storage account and container for state file"
+    inputs:
+      azureSubscription: '$(ServiceConnectionId)'
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        az account set --subscription $(SubscriptionId)
+        az group create --location westeurope --name $(RgTfName)
+        az storage account create --name st$(Company)$(Project)$(RegionShortcut)tf --resource-group $(RgTfName) --location westeurope --sku Standard_LRS
+        STORAGE_ACCOUNT_KEY=$(az storage account keys list -g $(RgTfName) -n st$(Company)$(Project)$(RegionShortcut)tf | jq ".[0].value" -r)
+        az storage container create --name "ct$(Company)$(Project)$(RegionShortcut)$(ServiceShortcut)" --account-name st$(Company)$(Project)$(RegionShortcut)tf --account-key $STORAGE_ACCOUNT_KEY
+        echo "setting storage account key variable"
+        echo "##vso[task.setvariable variable=ARM_ACCESS_KEY;issecret=true]$STORAGE_ACCOUNT_KEY"
+  - task: AzureCLI@2
+    displayName: "Create Airflow Resource group"
+    inputs:
+      azureSubscription: '$(ServiceConnectionId)'
+      scriptType: "bash"
+      scriptLocation: "inlineScript"
+      inlineScript: |
+        az account set --subscription $(SubscriptionId)
+        az group create --location westeurope --name $(RgName)
+
+  ## Install Terraform
+
+  - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
+    displayName: "Use Terraform version 0.13.5"
+    inputs:
+      terraformVersion: '$(TFVersion)'
+
+    ## Replace token in Terraform path
+  - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+    displayName: 'Replace Terraform tokens'
+    inputs:
+      rootDirectory: '$(Pipeline.Workspace)/infra/terraform'
+      tokenPrefix: __
+      tokenSuffix: __
+      targetFiles: |
+        **/*.tf
+
+
+  # Terraform init command
+  - task: TerraformTaskV3@3
+    displayName: 'Init Terraform'
+    inputs:
+      provider: 'azurerm'
+      command: 'init'
+      workingDirectory: '$(Pipeline.Workspace)/infra/terraform'
+      backendServiceArm: '$(ServiceConnectionId)'
+      backendAzureRmResourceGroupName: '$(RgTfName)'
+      backendAzureRmStorageAccountName: 'st$(Company)$(Project)$(RegionShortcut)tf'
+      backendAzureRmContainerName: "ct$(Company)$(Project)$(RegionShortcut)$(ServiceShortcut)"
+      backendAzureRmKey: terraform.$(Service).$(EnvironmentTag).tfstate
+
+  ## Terraform Custom State List 
+  - task: TerraformTaskV3@3
+    displayName: 'Terraform check State'
+    inputs:
+      provider: 'azurerm'
+      command: 'custom'
+      customCommand: 'state'
+      commandOptions: 'list'
+      workingDirectory: '$(Pipeline.Workspace)/infra/terraform'
+      environmentServiceNameAzureRM: '$(ServiceConnectionId)'
+      backendServiceArm: '$(ServiceConnectionId)'
+      backendAzureRmResourceGroupName: '$(RgTfName)'
+      backendAzureRmStorageAccountName: 'st$(Company)$(Project)$(RegionShortcut)tf'
+      backendAzureRmContainerName: "ct$(Company)$(Project)$(RegionShortcut)$(ServiceShortcut)"
+      backendAzureRmKey: terraform.$(Service).$(EnvironmentTag).tfstate   
+ 
+
+  ## Terrafrom plan
+  - task: TerraformTaskV3@3
+    displayName: 'Terraform plan'
+    inputs:
+      provider: 'azurerm'
+      command: 'plan'
+      commandOptions: -out=tfplan -lock=false
+      environmentServiceNameAzureRM: '$(ServiceConnectionId)'
+      workingDirectory: '$(Pipeline.Workspace)/infra/terraform'
+      backendServiceArm: '$(ServiceConnectionId)'
+      backendAzureRmResourceGroupName: '$(RgTfName)'
+      backendAzureRmStorageAccountName: 'st$(Company)$(Project)$(RegionShortcut)tf'
+      backendAzureRmContainerName: "ct$(Company)$(Project)$(RegionShortcut)$(ServiceShortcut)"
+      backendAzureRmKey: terraform.$(Service).$(EnvironmentTag).tfstate
+
+  - task: TerraformTaskV3@3
+    displayName: 'Terraform apply'
+    inputs:
+      provider: 'azurerm'
+      command: 'apply'
+      environmentServiceNameAzureRM: '$(ServiceConnectionId)'
+      workingDirectory: '$(Pipeline.Workspace)/infra/terraform'
+      backendServiceArm: '$(ServiceConnectionId)'
+      backendAzureRmResourceGroupName: '$(RgTfName)'
+      backendAzureRmStorageAccountName: 'st$(Company)$(Project)$(RegionShortcut)tf'
+      backendAzureRmContainerName: "ct$(Company)$(Project)$(RegionShortcut)$(ServiceShortcut)"
+      backendAzureRmKey: terraform.$(Service).$(EnvironmentTag).tfstate 

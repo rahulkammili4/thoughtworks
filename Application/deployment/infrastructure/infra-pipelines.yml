@@ -1,0 +1,34 @@
+
+stages:
+  - stage: Build_INFRA
+    displayName: Prepare/Build assets for deployment
+    jobs:
+    - template: templates/build-template.yml
+
+  - stage: DEV_Deployment_INFRA
+    displayName: DEV Deployment Infrastructure
+    dependsOn: Build_INFRA
+    condition: and(succeeded(), or(startsWith(variables['Build.SourceBranch'], 'refs/heads/dev'), startsWith(variables['Build.SourceBranch'], 'refs/heads/feature'), startsWith(variables['Build.SourceBranch'], 'refs/heads/bugfix')))
+    jobs:
+     - deployment: Deploy_DEV_INFRA
+       environment: '$(EnvironmentTag)'
+       pool:
+        vmImage: 'windows-latest'
+       strategy:
+          runOnce:
+            deploy:
+              steps:
+                - template: templates/deployment-template.yml
+                  parameters:
+                    company: '$(Company)'
+                    project: '$(Project)'
+                    service: '$(Service)'
+                    region: '$(Region)'
+                    serviceShortcut: '$(ServiceShortcut)'
+                    regionShortcut: '$(RegionShortcut)'
+                    environmentTag: '$(EnvironmentTag)'
+                    rgName: '$(RgName)'
+                    serviceConnectionId: '${{ variables.ServiceConnectionId }}'
+                    subscriptionId: '$(SubscriptionId)'
+                    shrService: '$(SharedService)'
+                    namespaceTag: '$(NamespaceTag)'

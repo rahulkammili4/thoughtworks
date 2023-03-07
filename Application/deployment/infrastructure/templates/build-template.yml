@@ -1,0 +1,19 @@
+jobs:
+  - job: Build
+    displayName: Prepare Shared Deployment
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+      - task: CopyFiles@2
+        displayName: Copy Terraform scripts to artifacts
+        inputs:
+          SourceFolder: $(Build.SourcesDirectory)/terraform/
+          TargetFolder: $(Build.ArtifactStagingDirectory)/terraform/
+          cleanTargetFolder: true
+          Contents: '**/*'
+
+      - task: PublishPipelineArtifact@0
+        displayName: Publish pipeline artifacts
+        inputs:
+          artifactName: infra
+          targetPath: $(Build.ArtifactStagingDirectory)

@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: password
+  namespace:  {{ .Values.namespace }}
+stringData:
+  redis-password: "{{ .Values.mariadb.auth.password }}"

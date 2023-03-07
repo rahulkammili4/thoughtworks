@@ -1,0 +1,21 @@
+jobs:
+    # Copy scripts
+  - job: Build
+    displayName: Prepare Shared Deployment
+    pool:
+      vmImage: 'ubuntu-latest'
+    steps:
+
+    - task: CopyFiles@2
+      displayName: Copy  Helm files to artifacts
+      inputs:
+        SourceFolder: $(Build.SourcesDirectory)/src/MP.mediawiki.Helm
+        TargetFolder: $(Build.ArtifactStagingDirectory)/src/MP.mediawiki.Helm
+        cleanTargetFolder: true
+        Contents: '**/*'
+
+    - task: PublishPipelineArtifact@0
+      displayName: Publish pipeline artifacts
+      inputs:
+        artifactName: drop_code
+        targetPath: $(Build.ArtifactStagingDirectory)

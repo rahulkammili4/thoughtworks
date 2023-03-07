@@ -1,0 +1,30 @@
+steps:
+
+  # Download secure file
+  - task: DownloadSecureFile@1
+    displayName: Download service accounts file
+    name: serviceAccountSecrets  # The name with which to reference the secure file's path on the agent, like $(mySecureFile.secureFilePath)
+    inputs:
+      secureFile: service_accounts.json
+
+  - task: HelmDeploy@0
+    displayName: Helm install mediawiki components
+    inputs:
+      connectionType: Azure Resource Manager
+      useClusterAdmin: true
+      azureSubscriptionEndpoint: '$(ServiceConnectionId)'
+      azureResourceGroup: rg-$(Company)-$(Project)-$(RegionShortcut)-$(EnvironmentTag)-$(SharedServiceName)
+      kubernetesCluster: $(AksName)
+      releaseName: mediawiki-components-release
+      chartName: $(Pipeline.Workspace)/drop_code/src/MP.mediawiki.Helm
+      command: upgrade
+      waitForExecution: false
+      valueFile: $(Pipeline.Workspace)/drop_code/src/MP.mediawiki.Helm/mediawiki.yaml
+      install: true
+      arguments: --namespace=$(NamespaceTag)               #added 
+                 --set mediawikiPassword=$(mediawikiPassword_pwd)
+                 --set mariadb.auth.rootPassword=$(mediawikiPassword_pwd)
+                 --set mariadb.auth.password=$(mediawikiPassword_pwd)
+                 --set namespace=$(NamespaceTag)
+                 --set tenantId=$(TenantId)
+                 --set kubeVersion=$(KubernetesVersion)

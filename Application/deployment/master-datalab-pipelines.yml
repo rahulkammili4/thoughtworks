@@ -1,0 +1,23 @@
+name: $(Year:yyyy).$(Month).$(Date:dd)$(Rev:.r)
+
+trigger:
+  branches:
+    include:
+      - feature/*
+
+# Include MP Global vars
+resources:
+
+variables:
+  # Include secrets for Datalab
+  - group: MP.test.Secrets                   #SP Secret etc. 
+  # include common variables
+  - template: variables/MP.Airflow.yml              
+  - template: variables/Global.yml                 
+
+  # should be only included on "dev-int" branch
+  - ${{ if or(startsWith(variables['Build.SourceBranch'], 'refs/heads/dev'), startsWith(variables['Build.SourceBranch'], 'refs/heads/feature'), startsWith(variables['Build.SourceBranch'], 'refs/heads/bugfix')) }}:
+
+stages:
+- template: infrastructure/infra-pipelines.yml
+- template: code/code-pipelines.yml
